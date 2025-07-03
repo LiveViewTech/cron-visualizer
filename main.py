@@ -85,17 +85,32 @@ def show_daily_view(cron_string, year, month, day):
     
     # Customize the plot
     ax.set_title(f'Daily Cron Execution: {year}-{month:02d}-{day:02d} | "{cron_string}"', fontsize=14, pad=20)
-    ax.set_xlabel('Hour of the Day', fontsize=12)
+    ax.set_xlabel('Hour of the Day', fontsize=12, labelpad=25)  # Added labelpad to move down
     ax.set_ylabel('Minute of the Hour', fontsize=12)
     
     # Set ticks to be more readable
     ax.set_xticks([i + 0.5 for i in range(24)])
     ax.set_xticklabels(range(24))
+    
+    # Add AM/PM labels below the 24-hour labels
+    for i in range(24):
+        if i == 0:
+            ampm_label = "12 AM"
+        elif i < 12:
+            ampm_label = f"{i} AM"
+        elif i == 12:
+            ampm_label = "12 PM"
+        else:
+            ampm_label = f"{i-12} PM"
+        
+        ax.text(i + 0.5, 0, ampm_label, ha='center', va='bottom', 
+                fontsize=8, color='gray', rotation=0)
+    
     ax.set_yticks([i + 0.5 for i in range(0, 61, 5)])
     ax.set_yticklabels([f'{i:02}' for i in range(0, 61, 5)])
     
-    # Invert y-axis to have 0 at the top
-    ax.invert_yaxis()
+    # Don't invert y-axis - keep 0 at the top naturally
+    # ax.invert_yaxis()  # Removed this line
     
     plt.tight_layout()
     plt.show()
@@ -351,7 +366,7 @@ def main():
     # "30 14 1,15 * *"           # 2:30 PM on 1st and 15th of every month
     # "0 0 * * 0"                # Midnight every Sunday
     
-    cron_string = "*/15 9-17 1,15 6 *"  # Every 15 min, 9-5, on 1st and 15th of June
+    cron_string = "*/15 9-17 * * *"  # Every 15 min, 9-5, on 1st and 15th of June
     
     print("=== Interactive Cron Schedule Visualizer ===")
     print("Monthly calendar view with clickable daily details")
