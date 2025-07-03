@@ -174,6 +174,18 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
     # Use a color palette that shows intensity
     cmap = sns.light_palette("#2c7fb8", as_cmap=True)
     
+    # Get the min and max values (excluding NaN) to set proper color scale
+    non_nan_values = heatmap_data.values[~pd.isna(heatmap_data.values)]
+    if len(non_nan_values) > 0:
+        vmin = non_nan_values.min()
+        vmax = non_nan_values.max()
+        # If all values are the same or very close, adjust the range slightly for better visibility
+        if vmax - vmin < 2:
+            vmin = vmin - 0.5
+            vmax = vmax + 0.5
+    else:
+        vmin, vmax = None, None
+    
     sns.heatmap(
         heatmap_data,
         cmap=cmap,
@@ -183,7 +195,9 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
         cbar=True,
         cbar_kws={'label': 'Execution Count per Day'},
         ax=ax,
-        square=True  # Make cells square-shaped
+        square=True,  # Make cells square-shaped
+        vmin=vmin,
+        vmax=vmax
     )
     
     # Add day numbers
@@ -273,6 +287,30 @@ def describe_cron_schedule(cron_string):
     """
     Generate a human-readable description of a cron schedule.
     Similar to crontab.guru descriptions.
+    Handles multiple cron jobs separated by '|'.
+    """
+    # Handle multiple cron jobs separated by '|'
+    cron_jobs = [job.strip() for job in cron_string.split('|')]
+    
+    if len(cron_jobs) > 1:
+        # Multiple jobs - describe each one
+        descriptions = []
+        for i, job in enumerate(cron_jobs, 1):
+            job_desc = describe_single_cron_job(job)
+            if job_desc != "Invalid cron format":
+                descriptions.append(f"Job {i}: {job_desc}")
+        
+        if descriptions:
+            return " | ".join(descriptions)
+        else:
+            return "Invalid cron format"
+    else:
+        # Single job
+        return describe_single_cron_job(cron_jobs[0])
+
+def describe_single_cron_job(cron_string):
+    """
+    Generate a human-readable description of a single cron job.
     """
     parts = cron_string.split()
     if len(parts) != 5:
@@ -354,7 +392,11 @@ def describe_cron_schedule(cron_string):
     if minute_part == '*' and hour_part == '*':
         description_parts.append("Every minute")
     elif minute_part != '*' and hour_part == '*':
-        description_parts.append(f"Every hour {time_desc[0]}")
+        # When minute is specified but hour is *, we want "Every hour at X minutes"
+        if time_desc:
+            description_parts.append(f"Every hour {time_desc[0]}")
+        else:
+            description_parts.append("Every hour")
     else:
         description_parts.extend(time_desc)
     
@@ -373,10 +415,10 @@ def main():
     # Example cron strings to try:
     # "*/15 9-17 * * *"          # Every 15 minutes during business hours
     # "0 9,12,15,18 * * *"       # 4 times a day at specific hours
-    # "30 14 1,15 * *"           # 2:30 PM on 1st and 15th of every month
+    # "27 14 1,15 * *"           # 2:30 PM on 1st and 15th of every month
     # "0 0 * * 0"                # Midnight every Sunday
     
-    cron_string = "* 0-4,18-23 * * * | */15 10-22 * * *"  # Every 15 min, 9-5, on 1st and 15th of June
+    cron_string = "* 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1,15 * *"  # Every 15 min, 9-5, on 1st and 15th of June
     
     print("=== Interactive Cron Schedule Visualizer ===")
     print("Monthly calendar view with clickable daily details")
