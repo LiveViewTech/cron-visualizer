@@ -171,46 +171,73 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
     # Create the interactive plot
     fig, ax = plt.subplots(figsize=(12, 8))
     
-    # Use a color palette that shows intensity
-    cmap = sns.light_palette("#2c7fb8", as_cmap=True)
+    # Create a blank calendar grid instead of heatmap
+    ax.set_xlim(0, 7)
+    ax.set_ylim(0, len(cal_matrix))
+    ax.set_aspect('equal')
     
-    # Get the min and max values (excluding NaN) to set proper color scale
-    non_nan_values = heatmap_data.values[~pd.isna(heatmap_data.values)]
-    if len(non_nan_values) > 0:
-        vmin = non_nan_values.min()
-        vmax = non_nan_values.max()
-        # If all values are the same or very close, adjust the range slightly for better visibility
-        if vmax - vmin < 2:
-            vmin = vmin - 0.5
-            vmax = vmax + 0.5
-    else:
-        vmin, vmax = None, None
+    # Draw grid lines
+    for i in range(len(cal_matrix) + 1):
+        ax.axhline(i, color='lightgray', linewidth=1)
+    for j in range(8):
+        ax.axvline(j, color='lightgray', linewidth=1)
     
-    sns.heatmap(
-        heatmap_data,
-        cmap=cmap,
-        annot=False,
-        linewidths=1,  # Increased line width for more visible grid
-        linecolor='lightgray',  # Changed to lighter gray
-        cbar=True,
-        cbar_kws={'label': 'Execution Count per Day'},
-        ax=ax,
-        square=True,  # Make cells square-shaped
-        vmin=vmin,
-        vmax=vmax
-    )
-    
-    # Add day numbers
-    for i in range(heatmap_data.shape[0]):
-        for j in range(heatmap_data.shape[1]):
-            if i < len(cal_matrix) and j < len(cal_matrix[i]):
+    # Add daily view thumbnails for days with jobs
+    for i in range(len(cal_matrix)):
+        for j in range(7):
+            if j < len(cal_matrix[i]):
                 day_num = cal_matrix[i][j]
                 if day_num > 0:  # Valid day of month
                     day_str = str(day_num)
-                    # Choose text color: white if there are events, black if no events
-                    text_color = "white" if pd.notna(heatmap_data.iloc[i, j]) else "black"
-                    ax.text(j + 0.5, i + 0.5, day_str, color=text_color, 
-                           fontsize=12, ha="center", va="center", fontweight="bold")
+                    
+                    if day_num in events:
+                        # Day has events - create thumbnail that matches daily view structure
+                        execution_times = check_cron_matches_date(cron_string, year, month, day_num)
+                        
+                        # Create a proper 24x60 miniature representation
+                        # Use exact same resolution as daily view for perfect accuracy
+                        thumbnail_hours = 24  # Keep all 24 hours
+                        thumbnail_minutes = 60  # Full resolution: 1-minute blocks (same as daily view)
+                        
+                        # Create thumbnail data as numpy array for faster processing
+                        import numpy as np
+                        thumb_array = np.zeros((thumbnail_minutes, thumbnail_hours))
+                        
+                        for hour, minute in execution_times:
+                            # Direct mapping - no reduction needed
+                            thumb_array[minute, hour] = 1
+                        
+                        # Draw the thumbnail within the calendar cell using imshow for speed
+                        cell_padding = 0.05
+                        cell_width = 0.9
+                        cell_height = 0.7
+                        cell_x = j + cell_padding
+                        cell_y = len(cal_matrix) - i - 0.95
+                        
+                        # Create extent for imshow (left, right, bottom, top)
+                        extent = [cell_x, cell_x + cell_width, 
+                                 cell_y, cell_y + cell_height]
+                        
+                        # Display the thumbnail as a single image
+                        from matplotlib.colors import ListedColormap
+                        cmap = ListedColormap(['white', '#FF5733'])
+                        ax.imshow(thumb_array, extent=extent, aspect='auto', 
+                                 cmap=cmap, alpha=0.8, origin='lower', interpolation='nearest')
+                        
+                        # Add a subtle border around the thumbnail
+                        thumb_border = plt.Rectangle((cell_x, cell_y), cell_width, cell_height,
+                                                   fill=False, edgecolor='lightgray', linewidth=0.5)
+                        ax.add_patch(thumb_border)
+                        
+                        # Add day number below the thumbnail
+                        ax.text(j + 0.5, len(cal_matrix) - i - 0.15, day_str, 
+                               color='black', fontsize=9, ha="center", va="center", 
+                               fontweight="bold")
+                    else:
+                        # Day exists but no events - just show day number
+                        ax.text(j + 0.5, len(cal_matrix) - i - 0.5, day_str, 
+                               color='black', fontsize=12, ha="center", va="center", 
+                               fontweight="bold")
     
     # Set title and labels
     cron_description = describe_cron_schedule(cron_string)
@@ -243,20 +270,24 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
             transform=ax.transAxes, ha='center', va='bottom', fontsize=12)
     
     # Add the instruction (small)
-    ax.text(0.5, 1.00, 'Click on a day for detailed view', 
+    ax.text(0.5, 1.00, 'Click on a day for detailed view. Thumbnails show daily execution patterns.', 
             transform=ax.transAxes, ha='center', va='bottom', 
             fontsize=10, style='italic')
     
-    ax.set_xlabel('')
-    ax.set_ylabel('')
+    # Set up the calendar labels
+    ax.set_xticks([i + 0.5 for i in range(7)])
     ax.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+    ax.set_yticks([])
     ax.set_yticklabels([])
     
-    # Add outer border for the entire calendar
+    # Remove default spines and add custom border
     for spine in ax.spines.values():
-        spine.set_visible(True)
-        spine.set_linewidth(2)
-        spine.set_edgecolor('black')
+        spine.set_visible(False)
+    
+    # Add outer border for the entire calendar
+    border = plt.Rectangle((0, 0), 7, len(cal_matrix), fill=False, 
+                          edgecolor='black', linewidth=2)
+    ax.add_patch(border)
     
     # Add click event handler
     def on_click(event):
@@ -264,10 +295,14 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
             col = int(event.xdata)
             row = int(event.ydata)
             
+            # Ensure we're within bounds and account for matplotlib's coordinate system
             if 0 <= row < len(cal_matrix) and 0 <= col < 7:
-                day = cal_matrix[row][col]
-                if day > 0:  # Valid day
-                    show_daily_view(cron_string, year, month, day)
+                # Convert matplotlib row to calendar matrix row (flip y-axis)
+                calendar_row = len(cal_matrix) - 1 - row
+                if 0 <= calendar_row < len(cal_matrix) and col < len(cal_matrix[calendar_row]):
+                    day = cal_matrix[calendar_row][col]
+                    if day > 0:  # Valid day
+                        show_daily_view(cron_string, year, month, day)
     
     fig.canvas.mpl_connect('button_press_event', on_click)
     
@@ -418,7 +453,7 @@ def main():
     # "27 14 1,15 * *"           # 2:30 PM on 1st and 15th of every month
     # "0 0 * * 0"                # Midnight every Sunday
     
-    cron_string = "* 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1,15 * *"  # Every 15 min, 9-5, on 1st and 15th of June
+    cron_string = "* 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1,15 * *"  # Multiple jobs
     
     print("=== Interactive Cron Schedule Visualizer ===")
     print("Monthly calendar view with clickable daily details")
