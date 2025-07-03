@@ -43,21 +43,31 @@ def check_cron_matches_date(cron_string, year, month, day):
     """
     Check if a cron job would execute on a specific date.
     Returns the list of (hour, minute) tuples for execution times on that date.
+    Handles multiple cron strings separated by '|'.
     """
-    parts = cron_string.split()
-    if len(parts) != 5:
-        return []
-
-    minutes = parse_cron_part(parts[0], 0, 59)
-    hours = parse_cron_part(parts[1], 0, 23)
-    days_of_month = parse_cron_part(parts[2], 1, 31)
-    months = parse_cron_part(parts[3], 1, 12)
-    # Note: We're ignoring day of week (parts[4]) for simplicity
+    all_execution_times = []
     
-    # Check if this date matches the cron criteria
-    if month in months and day in days_of_month:
-        return [(hour, minute) for hour in hours for minute in minutes]
-    return []
+    # Split by '|' to handle multiple cron jobs
+    cron_jobs = [job.strip() for job in cron_string.split('|')]
+    
+    for job in cron_jobs:
+        parts = job.split()
+        if len(parts) != 5:
+            continue  # Skip invalid cron jobs
+
+        minutes = parse_cron_part(parts[0], 0, 59)
+        hours = parse_cron_part(parts[1], 0, 23)
+        days_of_month = parse_cron_part(parts[2], 1, 31)
+        months = parse_cron_part(parts[3], 1, 12)
+        # Note: We're ignoring day of week (parts[4]) for simplicity
+        
+        # Check if this date matches the cron criteria
+        if month in months and day in days_of_month:
+            job_execution_times = [(hour, minute) for hour in hours for minute in minutes]
+            all_execution_times.extend(job_execution_times)
+    
+    # Remove duplicates (in case multiple cron jobs schedule the same time)
+    return list(set(all_execution_times))
 
 def show_daily_view(cron_string, year, month, day):
     """
@@ -194,7 +204,7 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
     # Create multi-line title with different font sizes
     title_lines = [
         f'"{cron_string}"',
-        'minute hour day_of_month month day_of_week',
+        'minute hour dayOfMonth month dayOfWeek',
         f'{cron_description} - {calendar.month_name[month]} {year}',
         'Click on a day for detailed view'
     ]
@@ -210,7 +220,7 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
             ha='center', va='bottom', fontsize=16, fontweight='bold')
     
     # Add the field labels (small, positioned to align with cron string)
-    ax.text(0.5, 1.10, 'minute hour day_of_month month day_of_week', 
+    ax.text(0.5, 1.10, 'minute hour dayOfMonth month dayOfWeek', 
             transform=ax.transAxes, ha='center', va='bottom', 
             fontsize=9, style='italic', color='gray')
     
@@ -366,7 +376,7 @@ def main():
     # "30 14 1,15 * *"           # 2:30 PM on 1st and 15th of every month
     # "0 0 * * 0"                # Midnight every Sunday
     
-    cron_string = "*/15 9-17 * * *"  # Every 15 min, 9-5, on 1st and 15th of June
+    cron_string = "* 0-4,18-23 * * * | */15 10-22 * * *"  # Every 15 min, 9-5, on 1st and 15th of June
     
     print("=== Interactive Cron Schedule Visualizer ===")
     print("Monthly calendar view with clickable daily details")
