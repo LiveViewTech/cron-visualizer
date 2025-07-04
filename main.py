@@ -19,6 +19,26 @@ import calendar
 from datetime import datetime
 import os
 
+# Color constants for execution visualization
+EXECUTION_COLOR_RGB = [0, 255, 0]  # Bright green for execution bars
+EXECUTION_COLOR_HEX = '#00FF00'     # Bright green for thumbnails
+
+# Dark mode color constants
+DARK_BACKGROUND_RGB = [30, 30, 30]     # Dark gray background
+DARK_BACKGROUND_HEX = '#1E1E1E'        # Dark gray background for thumbnails
+GRID_LINE_COLOR = [80, 80, 80]         # Medium gray for grid lines
+QUARTER_LINE_COLOR = [60, 60, 60]      # Darker gray for 15-minute lines
+TEXT_COLOR = (220, 220, 220)           # Light gray for text (tuple for PIL)
+
+# Additional color constants for remaining hard-coded colors
+FIGURE_BACKGROUND_HEX = '#1E1E1E'      # Dark background for matplotlib figure
+CALENDAR_GRID_COLOR = '#505050'        # Medium gray for calendar grid lines
+THUMBNAIL_BACKGROUND_HEX = '#404040'   # Lighter gray background for calendar thumbnails
+WEEK_BUTTON_COLOR = '#4A9EFF'          # Light blue for week view buttons
+CALENDAR_TEXT_WHITE = 'white'          # White text for calendar
+CALENDAR_TEXT_LIGHT_GRAY = 'lightgray' # Light gray text for calendar
+AM_PM_TEXT_COLOR = (160, 160, 160)     # Medium gray for AM/PM labels (tuple for PIL)
+
 def parse_cron_part(part_str, min_val, max_val):
     """
     Parses a single part of a cron string (like for minutes, hours, etc.).
@@ -101,28 +121,28 @@ def show_daily_view(jobs, year, month, day):
     # Create a direct numpy array that's exactly 1440x200 pixels (RGB)
     # We'll create the image directly to ensure exact pixel control
     img_height = 200  # Enough for timeline + labels
-    img_array = np.ones((img_height, 1440, 3), dtype=np.uint8) * 248  # Light gray background
+    img_array = np.full((img_height, 1440, 3), DARK_BACKGROUND_RGB, dtype=np.uint8)  # Dark background
     
     # Fill the timeline area (rows 60-100) with the execution data - twice as tall
     timeline_start_row = 60
     timeline_height = 40
     for minute in range(1440):
         if timeline[minute] == 1:
-            # Darker blue color for better contrast with grid lines
-            img_array[timeline_start_row:timeline_start_row+timeline_height, minute] = [25, 85, 140]
+            # Execution color for executions
+            img_array[timeline_start_row:timeline_start_row+timeline_height, minute] = EXECUTION_COLOR_RGB
     
     # Add hour grid lines (vertical lines every 60 minutes)
     for hour in range(25):
         x = hour * 60
         if x < 1440:
             # Draw vertical line from timeline area down
-            img_array[timeline_start_row-5:timeline_start_row+timeline_height+10, x] = [128, 128, 128]
+            img_array[timeline_start_row-5:timeline_start_row+timeline_height+10, x] = GRID_LINE_COLOR
     
     # Add quarter hour marks (lighter lines)
     for quarter in range(24 * 4):
         x = quarter * 15
         if x < 1440 and x % 60 != 0:  # Skip hour marks
-            img_array[timeline_start_row:timeline_start_row+timeline_height, x] = [192, 192, 192]
+            img_array[timeline_start_row:timeline_start_row+timeline_height, x] = QUARTER_LINE_COLOR
     
     # Save directly as PNG to guarantee exact 1440px width
     date_str = f"{year}-{month:02d}-{day:02d}"
@@ -138,7 +158,7 @@ def show_daily_view(jobs, year, month, day):
     
     # Create a display image that's exactly 1440px wide with embedded labels and title
     display_height = 200  # Increased height for title, timeline, labels, and bottom padding
-    display_array = np.ones((display_height, 1440, 3), dtype=np.uint8) * 255  # White background
+    display_array = np.full((display_height, 1440, 3), DARK_BACKGROUND_RGB, dtype=np.uint8)  # Dark background
     
     # Copy the timeline to the display image (centered vertically)
     timeline_y_start = 80  # Lower to make room for title
@@ -149,12 +169,12 @@ def show_daily_view(jobs, year, month, day):
     for hour in range(0, 25):
         x = hour * 60
         if x < 1440:
-            # Draw vertical grid line - same color as 15-minute lines but thicker and longer
+            # Draw vertical grid line - dark mode colors
             if hour % 2 == 0:  # Every 2 hours, draw a thicker line
-                line_color = [200, 200, 200]  # Same light gray as 15-minute lines
+                line_color = GRID_LINE_COLOR  # Medium gray grid lines
                 line_width = 2
             else:
-                line_color = [200, 200, 200]  # Same light gray as 15-minute lines
+                line_color = GRID_LINE_COLOR  # Medium gray grid lines
                 line_width = 1
             
             # Draw the vertical line extending further above and below than 15-minute lines
@@ -167,7 +187,7 @@ def show_daily_view(jobs, year, month, day):
         x = quarter * 15
         if x < 1440 and x % 60 != 0:  # Skip hour marks (they're already drawn above)
             # Draw lighter 15-minute graduation lines that extend less than hour lines
-            line_color = [200, 200, 200]  # Very light gray
+            line_color = QUARTER_LINE_COLOR  # Dark gray for 15-minute lines
             line_width = 1
             
             # Extend 8 pixels above and below the timeline (less than hour lines)
@@ -175,12 +195,12 @@ def show_daily_view(jobs, year, month, day):
                 if x + w < 1440:
                     display_array[timeline_y_start-8:timeline_y_end+8, x+w] = line_color
     
-    # Finally, draw the blue execution bars on top of everything (foreground layer)
-    # This ensures blue pixels are never hidden by grid lines in the middle
+    # Finally, draw the execution bars on top of everything (foreground layer)
+    # This ensures execution pixels are never hidden by grid lines in the middle
     for minute in range(1440):
         if timeline[minute] == 1:
-            # Darker blue color for executions - better contrast with grid lines
-            display_array[timeline_y_start:timeline_y_end, minute] = [25, 85, 140]
+            # Execution color for executions
+            display_array[timeline_y_start:timeline_y_end, minute] = EXECUTION_COLOR_RGB
     
     # Add simple text labels using basic pixel drawing (hour numbers)
     # We'll draw simple hour numbers below the timeline
@@ -201,7 +221,7 @@ def show_daily_view(jobs, year, month, day):
     title_bbox = draw.textbbox((0, 0), title_text, font=font)
     title_width = title_bbox[2] - title_bbox[0]
     title_x = (1440 - title_width) // 2  # Center the title
-    draw.text((title_x, 10), title_text, fill=(0, 0, 0), font=font)
+    draw.text((title_x, 10), title_text, fill=TEXT_COLOR, font=font)
     
     # Add hour labels below the timeline (both 24-hour and AM/PM format)
     for hour in range(0, 25):  # Every hour to show all hour marks
@@ -220,7 +240,7 @@ def show_daily_view(jobs, year, month, day):
             
             text_y = timeline_y_end + 25
             # Use same font size for all hour labels
-            draw.text((text_x, text_y), hour_24, fill=(0, 0, 0), font=font)
+            draw.text((text_x, text_y), hour_24, fill=TEXT_COLOR, font=font)
             
             # AM/PM format below the 24-hour format - only for even hours to avoid crowding
             if hour % 2 == 0:
@@ -241,7 +261,7 @@ def show_daily_view(jobs, year, month, day):
                 else:
                     text_x = max(10, x - text_width // 2)  # Center on hour line, but ensure minimum 10px from left edge
                 text_y = timeline_y_end + 45
-                draw.text((text_x, text_y), hour_ampm, fill=(120, 120, 120), font=font)
+                draw.text((text_x, text_y), hour_ampm, fill=AM_PM_TEXT_COLOR, font=font)
     
     # Convert back to numpy array
     display_array = np.array(pil_image)
@@ -269,14 +289,10 @@ def show_daily_view(jobs, year, month, day):
     print(f"   Each pixel = 1 minute, 1440px = 24 hours")
     
     try:
-        # Open the image with the system's default image viewer
-        # This guarantees true 1:1 pixel display without any scaling
-        from PIL import Image
-        with Image.open(display_filename) as img:
-            img.show()  # Opens in system default image viewer at 1:1 scale
-        
-        print(f"   ✅ Image opened in system viewer at true 1:1 scale!")
-        print(f"   💡 Use your image viewer's zoom to inspect details")
+        # Open the image directly from project directory (avoids temp files)
+        import os
+        os.startfile(display_filename)  # Windows-specific: opens file with default app
+        print(f"   ✅ Daily view opened from project directory!")
         
     except Exception as e:
         print(f"   ⚠️  Could not open image viewer: {e}")
@@ -325,7 +341,7 @@ def show_week_view(jobs, year, month, week_data):
     week_height = 7 * day_height + 100  # 7 days plus margins
     
     # Create the week image
-    week_array = np.ones((week_height, total_width, 3), dtype=np.uint8) * 255  # White background
+    week_array = np.full((week_height, total_width, 3), DARK_BACKGROUND_RGB, dtype=np.uint8)  # Dark background
     
     # Day names for labels
     day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -357,12 +373,12 @@ def show_week_view(jobs, year, month, week_data):
             for hour in range(0, 25):
                 x = hour * 60
                 if x < 1440:
-                    # Draw vertical grid line - same color as 15-minute lines but thicker and longer
+                    # Draw vertical grid line - dark mode colors
                     if hour % 2 == 0:  # Every 2 hours, draw a thicker line
-                        line_color = [200, 200, 200]  # Same light gray as 15-minute lines
+                        line_color = GRID_LINE_COLOR  # Medium gray grid lines
                         line_width = 2
                     else:
-                        line_color = [200, 200, 200]  # Same light gray as 15-minute lines
+                        line_color = GRID_LINE_COLOR  # Medium gray grid lines
                         line_width = 1
                     
                     # Draw the vertical line extending further above and below than 15-minute lines
@@ -375,7 +391,7 @@ def show_week_view(jobs, year, month, week_data):
                 x = quarter * 15
                 if x < 1440 and x % 60 != 0:  # Skip hour marks (they're already drawn above)
                     # Draw lighter 15-minute graduation lines that extend less than hour lines
-                    line_color = [200, 200, 200]  # Very light gray
+                    line_color = QUARTER_LINE_COLOR  # Dark gray for 15-minute lines
                     line_width = 1
                     
                     # Extend 8 pixels above and below the timeline (less than hour lines)
@@ -383,12 +399,12 @@ def show_week_view(jobs, year, month, week_data):
                         if x + w < 1440:
                             week_array[timeline_y_start-8:timeline_y_end+8, x+w] = line_color
             
-            # Finally, draw the blue execution bars on top of everything (foreground layer)
-            # This ensures blue pixels are never hidden by grid lines in the middle
+            # Finally, draw the execution bars on top of everything (foreground layer)
+            # This ensures execution pixels are never hidden by grid lines in the middle
             for minute in range(1440):
                 if timeline[minute] == 1:
-                    # Darker blue color for executions - better contrast with grid lines
-                    week_array[timeline_y_start:timeline_y_end, minute] = [25, 85, 140]
+                    # Execution color for executions
+                    week_array[timeline_y_start:timeline_y_end, minute] = EXECUTION_COLOR_RGB
     
     # Convert to PIL Image to add text labels
     pil_image = Image.fromarray(week_array)
@@ -408,7 +424,7 @@ def show_week_view(jobs, year, month, week_data):
     title_bbox = draw.textbbox((0, 0), title_text, font=title_font)
     title_width = title_bbox[2] - title_bbox[0]
     title_x = (total_width - title_width) // 2
-    draw.text((title_x, 10), title_text, fill=(0, 0, 0), font=title_font)
+    draw.text((title_x, 10), title_text, fill=TEXT_COLOR, font=title_font)
     
     # Add day labels and hour markers
     for day_idx in range(7):
@@ -421,7 +437,7 @@ def show_week_view(jobs, year, month, week_data):
             
             # Day label on the left - positioned well above timeline and gridlines
             day_label = f"{day_names[day_idx]} {day_num}"
-            draw.text((10, timeline_y_start - 25), day_label, fill=(0, 0, 0), font=font)
+            draw.text((10, timeline_y_start - 25), day_label, fill=TEXT_COLOR, font=font)
             
             # Hour labels (every hour to match daily view) - positioned below grid lines
             for hour in range(0, 25):  # Every hour to show all hour marks
@@ -440,7 +456,7 @@ def show_week_view(jobs, year, month, week_data):
                     
                     text_y = timeline_y_end + 30
                     # Use same font size for all hour labels
-                    draw.text((text_x, text_y), hour_24, fill=(0, 0, 0), font=font)
+                    draw.text((text_x, text_y), hour_24, fill=TEXT_COLOR, font=font)
                     
                     # AM/PM format below the 24-hour format - only for even hours to avoid crowding
                     if hour % 2 == 0:
@@ -461,7 +477,7 @@ def show_week_view(jobs, year, month, week_data):
                         else:
                             text_x = max(10, x - text_width // 2)  # Center on hour line, but ensure minimum 10px from left edge (same as daily view)
                         text_y = timeline_y_end + 50
-                        draw.text((text_x, text_y), hour_ampm, fill=(120, 120, 120), font=font)
+                        draw.text((text_x, text_y), hour_ampm, fill=AM_PM_TEXT_COLOR, font=font)
     
     # Save the week view image
     week_filename = f"week_view_{year}-{month:02d}_week{week_data[0] if week_data[0] > 0 else 'X'}.png"
@@ -472,10 +488,11 @@ def show_week_view(jobs, year, month, week_data):
     print(f"   📊 7 daily timelines stacked vertically")
     print(f"   🔍 Each timeline: 1440px wide, 1 pixel = 1 minute")
     
-    # Open the week view image
+    # Open the week view image directly from project directory
     try:
-        pil_image.show()
-        print(f"   ✅ Week view opened in system viewer!")
+        import os
+        os.startfile(week_filename)  # Windows-specific: opens file with default app
+        print(f"   ✅ Week view opened from project directory!")
     except Exception as e:
         print(f"   ⚠️  Could not open week view: {e}")
         print(f"   📁 Please manually open: {week_filename}")
@@ -543,17 +560,19 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
     
     # Create the interactive plot
     fig, ax = plt.subplots(figsize=(15, 8))  # Slightly wider to accommodate week view buttons
+    fig.patch.set_facecolor(FIGURE_BACKGROUND_HEX)  # Dark background for figure
+    ax.set_facecolor(FIGURE_BACKGROUND_HEX)  # Dark background for axes
     
     # Create a blank calendar grid instead of heatmap - extend to include week view buttons
     ax.set_xlim(-1, 7)  # Extended left margin for week view buttons
     ax.set_ylim(0, len(cal_matrix))
     ax.set_aspect('equal')
     
-    # Draw grid lines
+    # Draw grid lines with dark mode colors
     for i in range(len(cal_matrix) + 1):
-        ax.axhline(i, color='lightgray', linewidth=1)
+        ax.axhline(i, color=CALENDAR_GRID_COLOR, linewidth=1)
     for j in range(8):
-        ax.axvline(j, color='lightgray', linewidth=1)
+        ax.axvline(j, color=CALENDAR_GRID_COLOR, linewidth=1)
     
     # Add week view links on the left of each row (simple hyperlink style)
     week_buttons = []  # Store text areas for click detection
@@ -567,14 +586,14 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
         # Add hyperlink-style text with underline
         week_text = ax.text(text_x, text_y, 'Week View', 
                            fontsize=9, ha='center', va='center', 
-                           color='blue', style='italic')
+                           color=WEEK_BUTTON_COLOR, style='italic')  # Light blue for dark mode
         
         # Add underline by drawing a line below the text
         # Calculate approximate text width and position
         text_width = 0.5  # Approximate width for "Week View"
         line_y = week_y - 0.08  # Slightly below the text
         ax.plot([text_x - text_width/2, text_x + text_width/2], [line_y, line_y], 
-               color='blue', linewidth=0.8, alpha=0.8)
+               color=WEEK_BUTTON_COLOR, linewidth=0.8, alpha=0.8)  # Light blue for dark mode
         
         # Store text area info for click detection (wider area for easier clicking)
         click_width = 0.7
@@ -623,18 +642,18 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
                         
                         # Display the thumbnail as a single image
                         from matplotlib.colors import ListedColormap
-                        cmap = ListedColormap(['#F0F0F0', '#19558C'])  # Very light gray background, darker blue for executions
+                        cmap = ListedColormap([THUMBNAIL_BACKGROUND_HEX, EXECUTION_COLOR_HEX])  # Lighter background, execution color for executions
                         ax.imshow(thumb_array, extent=extent, aspect='auto', 
                                  cmap=cmap, alpha=0.9, origin='lower', interpolation='bilinear')
                         
                         # Add day number below the thumbnail
                         ax.text(j + 0.5, len(cal_matrix) - i - 0.15, day_str, 
-                               color='black', fontsize=9, ha="center", va="center", 
+                               color=CALENDAR_TEXT_WHITE, fontsize=9, ha="center", va="center", 
                                fontweight="bold")
                     else:
                         # Day exists but no events - just show day number
                         ax.text(j + 0.5, len(cal_matrix) - i - 0.5, day_str, 
-                               color='black', fontsize=12, ha="center", va="center", 
+                               color=CALENDAR_TEXT_LIGHT_GRAY, fontsize=12, ha="center", va="center", 
                                fontweight="bold")
     
     # Set title and labels
@@ -656,25 +675,25 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
     
     # Add the cron string (large)
     ax.text(0.5, 1.15, f'"{cron_string}"', transform=ax.transAxes, 
-            ha='center', va='bottom', fontsize=16, fontweight='bold')
+            ha='center', va='bottom', fontsize=16, fontweight='bold', color=CALENDAR_TEXT_WHITE)
     
     # Add the field labels (small, positioned to align with cron string)
     ax.text(0.5, 1.10, 'minute hour dayOfMonth month dayOfWeek', 
             transform=ax.transAxes, ha='center', va='bottom', 
-            fontsize=9, style='italic', color='gray')
+            fontsize=9, style='italic', color=CALENDAR_TEXT_LIGHT_GRAY)
     
     # Add the description (medium)
     ax.text(0.5, 1.05, f'{cron_description} - {calendar.month_name[month]} {year}', 
-            transform=ax.transAxes, ha='center', va='bottom', fontsize=12)
+            transform=ax.transAxes, ha='center', va='bottom', fontsize=12, color=CALENDAR_TEXT_WHITE)
     
     # Add the instruction (small)
     ax.text(0.5, 1.00, 'Click on a day for detailed 1440-pixel timeline view (1 pixel = 1 minute). Click "Week View" buttons for 7-day stack view. Thumbnails show daily patterns.', 
             transform=ax.transAxes, ha='center', va='bottom', 
-            fontsize=10, style='italic')
+            fontsize=10, style='italic', color=CALENDAR_TEXT_LIGHT_GRAY)
     
     # Set up the calendar labels
     ax.set_xticks([i + 0.5 for i in range(7)])
-    ax.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+    ax.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], color=CALENDAR_TEXT_WHITE)
     ax.set_yticks([])
     ax.set_yticklabels([])
     
@@ -684,7 +703,7 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
     
     # Add outer border for the entire calendar (excluding week buttons)
     border = plt.Rectangle((0, 0), 7, len(cal_matrix), fill=False, 
-                          edgecolor='black', linewidth=2)
+                          edgecolor=CALENDAR_TEXT_WHITE, linewidth=2)
     ax.add_patch(border)
     
     # Add click event handler
@@ -698,20 +717,21 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
                     # Week button clicked
                     print(f"Week view button clicked for week {button_info['week_index'] + 1}")
                     show_week_view(jobs, year, month, button_info['week_data'])
-                    return
+                    return  # Early return prevents day cell processing
             
             # Check if click is on a day cell
-            col = int(event.xdata)
-            row = int(event.ydata)
-            
-            # Ensure we're within bounds and account for matplotlib's coordinate system
-            if 0 <= row < len(cal_matrix) and 0 <= col < 7:
-                # Convert matplotlib row to calendar matrix row (flip y-axis)
-                calendar_row = len(cal_matrix) - 1 - row
-                if 0 <= calendar_row < len(cal_matrix) and col < len(cal_matrix[calendar_row]):
-                    day = cal_matrix[calendar_row][col]
-                    if day > 0:  # Valid day
-                        show_daily_view(jobs, year, month, day)
+            if event.xdata >= 0 and event.xdata < 7:
+                col = int(event.xdata)
+                row = int(event.ydata)
+                
+                # Ensure we're within bounds and account for matplotlib's coordinate system
+                if 0 <= row < len(cal_matrix) and 0 <= col < 7:
+                    # Convert matplotlib row to calendar matrix row (flip y-axis)
+                    calendar_row = len(cal_matrix) - 1 - row
+                    if 0 <= calendar_row < len(cal_matrix) and col < len(cal_matrix[calendar_row]):
+                        day = cal_matrix[calendar_row][col]
+                        if day > 0:  # Valid day
+                            show_daily_view(jobs, year, month, day)
     
     fig.canvas.mpl_connect('button_press_event', on_click)
     
@@ -722,7 +742,7 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
     while os.path.exists(f"cron_calendar_{counter}.png"):
         counter += 1
     filename = f"cron_calendar_{counter}.png"
-    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.savefig(filename, dpi=300, bbox_inches='tight', facecolor=FIGURE_BACKGROUND_HEX)
     
     plt.show()
     print(f"Interactive calendar saved as '{filename}'")
@@ -862,7 +882,7 @@ def main():
     # "27 14 1,15 * *"           # 2:30 PM on 1st and 15th of every month
     # "0 0 * * 0"                # Midnight every Sunday
     
-    cron_string = "* 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1,15 * *"  # Multiple jobs
+    cron_string = "0 9,12,15,18 * * *"  # A complicated example: "3-8 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"
     
     print("=== Interactive Cron Schedule Visualizer ===")
     print("Monthly calendar view with clickable daily details")
