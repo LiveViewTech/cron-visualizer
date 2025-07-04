@@ -882,7 +882,7 @@ def main():
     # "27 14 1,15 * *"           # 2:30 PM on 1st and 15th of every month
     # "0 0 * * 0"                # Midnight every Sunday
     
-    cron_string = "0 9,12,15,18 * * *"  # A complicated example: "3-8 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"
+    cron_string = "3-10 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"  # A complicated example: "3-10 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"
     
     print("=== Interactive Cron Schedule Visualizer ===")
     print("Monthly calendar view with clickable daily details")
