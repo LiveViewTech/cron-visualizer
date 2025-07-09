@@ -14,10 +14,21 @@ A simple hello world program for the cronScheduleVisualizer project.
 
 import pandas as pd
 import seaborn as sns
+import matplotlib
+# Configure matplotlib backend for headless systems (servers without display)
+# This must be done before importing pyplot
+try:
+    import tkinter
+    matplotlib.use('TkAgg')  # Use TkAgg backend if tkinter is available
+except ImportError:
+    matplotlib.use('Agg')  # Use Agg backend for headless systems
+
 import matplotlib.pyplot as plt
 import calendar
 from datetime import datetime
 import os
+import platform
+import subprocess
 
 # Color constants for execution visualization
 EXECUTION_COLOR_RGB = [0, 255, 0]  # Bright green for execution bars
@@ -38,6 +49,28 @@ WEEK_BUTTON_COLOR = '#4A9EFF'          # Light blue for week view buttons
 CALENDAR_TEXT_WHITE = 'white'          # White text for calendar
 CALENDAR_TEXT_LIGHT_GRAY = 'lightgray' # Light gray text for calendar
 AM_PM_TEXT_COLOR = (160, 160, 160)     # Medium gray for AM/PM labels (tuple for PIL)
+
+def open_image_cross_platform(filename):
+    """
+    Open an image file using the default application on Windows, macOS, and Linux.
+    """
+    try:
+        system = platform.system()
+        if system == "Windows":
+            os.startfile(filename)
+        elif system == "Darwin":  # macOS
+            subprocess.run(["open", filename])
+        elif system == "Linux":
+            subprocess.run(["xdg-open", filename])
+        else:
+            print(f"   ⚠️  Unknown operating system: {system}")
+            print(f"   📁 Please manually open: {filename}")
+            return False
+        return True
+    except Exception as e:
+        print(f"   ⚠️  Could not open image: {e}")
+        print(f"   📁 Please manually open: {filename}")
+        return False
 
 def parse_cron_part(part_str, min_val, max_val):
     """
@@ -285,10 +318,9 @@ def show_daily_view(jobs, year, month, day):
     print(f"   Each pixel = 1 minute, 1440px = 24 hours")
     
     try:
-        # Open the image directly from project directory (avoids temp files)
-        import os
-        os.startfile(display_filename)  # Windows-specific: opens file with default app
-        print(f"   ✅ Daily view opened from project directory!")
+        # Open the image directly from project directory (cross-platform)
+        if open_image_cross_platform(display_filename):
+            print(f"   ✅ Daily view opened from project directory!")
         
     except Exception as e:
         print(f"   ⚠️  Could not open image viewer: {e}")
@@ -480,11 +512,10 @@ def show_week_view(jobs, year, month, week_data):
     print(f"   📊 7 daily timelines stacked vertically")
     print(f"   🔍 Each timeline: 1440px wide, 1 pixel = 1 minute")
     
-    # Open the week view image directly from project directory
+    # Open the week view image directly from project directory (cross-platform)
     try:
-        import os
-        os.startfile(week_filename)  # Windows-specific: opens file with default app
-        print(f"   ✅ Week view opened from project directory!")
+        if open_image_cross_platform(week_filename):
+            print(f"   ✅ Week view opened from project directory!")
     except Exception as e:
         print(f"   ⚠️  Could not open week view: {e}")
         print(f"   📁 Please manually open: {week_filename}")

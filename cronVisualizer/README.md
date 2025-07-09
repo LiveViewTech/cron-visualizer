@@ -27,7 +27,7 @@ The tool generates three types of visualizations:
 ### Prerequisites
 
 - Python 3.7 or higher
-- Windows OS (uses `os.startfile()` for opening images)
+- Windows, macOS, or Linux (macOS and Ubuntu/Debian are untested)
 
 ### Install Dependencies
 
@@ -41,6 +41,13 @@ Or install all dependencies at once:
 pip install -r requirements.txt
 ```
 
+### Platform-Specific Notes
+
+- **Windows**: Uses `os.startfile()` to open images
+- **macOS**: Uses `open` command to open images  
+- **Linux**: Uses `xdg-open` to open images (requires desktop environment)
+- **Headless Linux**: Images are generated but won't auto-open (manually open PNG files)
+
 ### Requirements File
 
 If you prefer to use a requirements.txt file, create one with:
@@ -51,6 +58,31 @@ seaborn>=0.11.0
 matplotlib>=3.5.0
 pillow>=8.0.0
 numpy>=1.21.0
+```
+
+### Installation on Different Platforms
+
+#### Windows
+```bash
+pip install pandas seaborn matplotlib pillow numpy
+```
+
+#### macOS
+```bash
+pip install pandas seaborn matplotlib pillow numpy
+```
+
+#### Ubuntu/Linux
+```bash
+# Install Python and pip (if not already installed)
+sudo apt-get update
+sudo apt-get install python3 python3-pip
+
+# Install dependencies
+pip3 install pandas seaborn matplotlib pillow numpy
+
+# Install image viewing utilities (if not already installed)
+sudo apt-get install xdg-utils
 ```
 
 ## Usage
@@ -127,7 +159,6 @@ The tool generates PNG files in the current directory:
 
 ## Dependencies Explained
 
-
 - **pandas**: Data manipulation and calendar matrix creation
 - **seaborn**: Statistical plotting enhancements
 - **matplotlib**: Interactive plotting and calendar visualization
@@ -135,15 +166,27 @@ The tool generates PNG files in the current directory:
 - **numpy**: Array operations for timeline data
 - **calendar**: Built-in Python calendar utilities
 - **datetime**: Date and time manipulation
+- **platform**: Cross-platform OS detection
+- **subprocess**: Cross-platform command execution
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Image won't open**: Make sure you're on Windows (uses `os.startfile()`)
+1. **Image won't open**: 
+   - **Windows**: Ensure default image viewer is configured
+   - **macOS**: Images open with Preview by default
+   - **Linux**: Requires desktop environment with `xdg-open` support
+   - **Headless servers**: Images are generated but won't auto-open
 2. **Font errors**: The tool falls back to default font if arial.ttf is not found
 3. **Missing dependencies**: Install all required packages with pip
 4. **Large output files**: Timeline images are intentionally high resolution
+
+### Platform-Specific Issues
+
+- **Linux/Ubuntu**: Install desktop environment for image viewing: `sudo apt-get install xdg-utils`
+- **macOS**: No additional requirements for image viewing
+- **Windows**: No additional requirements for image viewing
 
 ### Performance Notes
 
