@@ -154,7 +154,6 @@ The tool generates PNG files in the current directory:
 - `cron_calendar_X.png` - Monthly calendar view
 - `daily_timeline_YYYY-MM-DD.png` - Daily timeline view
 - `week_view_YYYY-MM_weekX.png` - Week view
-- `debug_daily_YYYY-MM-DD.png` - Debug timeline (raw)
 
 
 ## Dependencies Explained

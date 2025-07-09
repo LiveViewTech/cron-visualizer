@@ -148,52 +148,13 @@ def show_daily_view(jobs, year, month, day):
                 timeline[t] = 1
         execution_times.extend(times)
 
-    # Create a 2D array for imshow (1 row, 1440 columns)
-    timeline_2d = timeline[np.newaxis, :]
-
-    # Create a direct numpy array that's exactly 1440x200 pixels (RGB)
-    # We'll create the image directly to ensure exact pixel control
-    img_height = 200  # Enough for timeline + labels
-    img_array = np.full((img_height, 1440, 3), DARK_BACKGROUND_RGB, dtype=np.uint8)  # Dark background
-    
-    # Fill the timeline area (rows 60-100) with the execution data - twice as tall
-    timeline_start_row = 60
-    timeline_height = 40
-    for minute in range(1440):
-        if timeline[minute] == 1:
-            # Execution color for executions
-            img_array[timeline_start_row:timeline_start_row+timeline_height, minute] = EXECUTION_COLOR_RGB
-    
-    # Add hour grid lines (vertical lines every 60 minutes)
-    for hour in range(25):
-        x = hour * 60
-        if x < 1440:
-            # Draw vertical line from timeline area down
-            img_array[timeline_start_row-5:timeline_start_row+timeline_height+10, x] = GRID_LINE_COLOR
-    
-    # Add quarter hour marks (lighter lines)
-    for quarter in range(24 * 4):
-        x = quarter * 15
-        if x < 1440 and x % 60 != 0:  # Skip hour marks
-            img_array[timeline_start_row:timeline_start_row+timeline_height, x] = QUARTER_LINE_COLOR
-    
-    # Save directly as PNG to guarantee exact 1440px width
-    date_str = f"{year}-{month:02d}-{day:02d}"
-    temp_filename = f"debug_daily_{date_str}.png"
-    Image.fromarray(img_array).save(temp_filename)
-    
-    # Verify the saved image size
-    with Image.open(temp_filename) as img:
-        w, h = img.size
-        print(f"Saved image: {temp_filename} | Size: {w}x{h} (should be 1440x{img_height})")
-        if w != 1440:
-            print("WARNING: Output image is not exactly 1440px wide!")
-    
     # Create a display image that's exactly 1440px wide with embedded labels and title
+    date_str = f"{year}-{month:02d}-{day:02d}"
     display_height = 200  # Increased height for title, timeline, labels, and bottom padding
     display_array = np.full((display_height, 1440, 3), DARK_BACKGROUND_RGB, dtype=np.uint8)  # Dark background
     
     # Copy the timeline to the display image (centered vertically)
+    timeline_height = 40
     timeline_y_start = 80  # Lower to make room for title
     timeline_y_end = timeline_y_start + timeline_height
     
@@ -299,17 +260,11 @@ def show_daily_view(jobs, year, month, day):
     display_filename = f"daily_timeline_{date_str}.png"
     Image.fromarray(display_array).save(display_filename)
     
-    # Verify the display image dimensions
-    with Image.open(display_filename) as img:
-        w, h = img.size
-        print(f"Display image: {display_filename} | Size: {w}x{h} (exactly 1440px wide)")
-    
-    # MAIN SUCCESS: Pixel-perfect files are saved! 
-    print(f"\n🎯 SUCCESS: PIXEL-PERFECT TIMELINE FILES CREATED!")
-    print(f"   📁 {temp_filename} (1440×{img_height}px)")
+    # Timeline creation complete
+    print(f"\n🎯 SUCCESS: PIXEL-PERFECT TIMELINE CREATED!")
     print(f"   📁 {display_filename} (1440×{display_height}px)")
-    print(f"   ✅ Both exactly 1440px wide (1 pixel = 1 minute)")
-    print(f"   🔍 Open these PNG files for precise measurements!")
+    print(f"   ✅ Exactly 1440px wide (1 pixel = 1 minute)")
+    print(f"   🔍 Open the PNG file for precise measurements!")
     
     # Display the exact image using PIL's built-in viewer (TRUE 1:1 pixels!)
     print(f"\n📺 OPENING PIXEL-PERFECT IMAGE VIEWER...")
