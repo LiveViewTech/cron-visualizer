@@ -170,12 +170,8 @@ def show_daily_view(jobs, year, month, day):
         x = hour * 60
         if x < 1440:
             # Draw vertical grid line - dark mode colors
-            if hour % 2 == 0:  # Every 2 hours, draw a thicker line
-                line_color = GRID_LINE_COLOR  # Medium gray grid lines
-                line_width = 2
-            else:
-                line_color = GRID_LINE_COLOR  # Medium gray grid lines
-                line_width = 1
+            line_color = GRID_LINE_COLOR  # Medium gray grid lines
+            line_width = 1
             
             # Draw the vertical line extending further above and below than 15-minute lines
             for w in range(line_width):
@@ -374,12 +370,8 @@ def show_week_view(jobs, year, month, week_data):
                 x = hour * 60
                 if x < 1440:
                     # Draw vertical grid line - dark mode colors
-                    if hour % 2 == 0:  # Every 2 hours, draw a thicker line
-                        line_color = GRID_LINE_COLOR  # Medium gray grid lines
-                        line_width = 2
-                    else:
-                        line_color = GRID_LINE_COLOR  # Medium gray grid lines
-                        line_width = 1
+                    line_color = GRID_LINE_COLOR  # Medium gray grid lines
+                    line_width = 1
                     
                     # Draw the vertical line extending further above and below than 15-minute lines
                     for w in range(line_width):
