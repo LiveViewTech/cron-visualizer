@@ -2,7 +2,7 @@
 """
 Test script to debug calendar visualization
 """
-from main import generate_monthly_calendar
+from cronVisualizer.main import generate_monthly_calendar
 
 # Test with a simpler cron that should clearly show all days
 simple_cron = "0 12 * * *"  # Noon every day
