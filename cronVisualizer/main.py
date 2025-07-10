@@ -867,7 +867,7 @@ def main():
     print()
     
     # You can specify a different year/month, or leave None for current
-    generate_monthly_calendar(cron_string, year=2025, month=None)
+    generate_monthly_calendar(cron_string, year=None, month=None)
 
 if __name__ == "__main__":
     main()
