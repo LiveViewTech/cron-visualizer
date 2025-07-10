@@ -857,7 +857,7 @@ def main():
     # Example cron strings to try:
     # "*/15 9-17 * * *"          # Every 15 minutes during business hours
     # "0 9,12,15,18 * * *"       # 4 times a day at specific hours
-    # "27 14 1,15 * *"           # 2:30 PM on 1st and 15th of every month
+    # "27 14 1,15 * *"           # 2:27 PM on 1st and 15th of every month
     # "0 0 * * 0"                # Midnight every Sunday
     
     cron_string = "3-10 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"  # A complicated example: "3-10 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"
@@ -867,7 +867,7 @@ def main():
     print()
     
     # You can specify a different year/month, or leave None for current
-    generate_monthly_calendar(cron_string, year=2025, month=6)
+    generate_monthly_calendar(cron_string, year=2025, month=None)
 
 if __name__ == "__main__":
     main()
