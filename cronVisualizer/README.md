@@ -180,6 +180,7 @@ The tool generates PNG files in the current directory:
 2. **Font errors**: The tool falls back to default font if arial.ttf is not found
 3. **Missing dependencies**: Install all required packages with pip
 4. **Large output files**: Timeline images are intentionally high resolution
+5. **Month or year boundaries**: Spanning the boundary between two months or years is untested and may not work as expected
 
 ### Platform-Specific Issues
 
