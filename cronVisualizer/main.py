@@ -129,6 +129,8 @@ def check_cron_matches_date(cron_string, year, month, day):
     Returns the list of (hour, minute) tuples for execution times on that date.
     Handles multiple cron strings separated by '|'.
     """
+    import datetime
+    
     all_execution_times = []
     
     # Split by '|' to handle multiple cron jobs
@@ -143,10 +145,31 @@ def check_cron_matches_date(cron_string, year, month, day):
         hours = parse_cron_part(parts[1], 0, 23)
         days_of_month = parse_cron_part(parts[2], 1, 31)
         months = parse_cron_part(parts[3], 1, 12)
-        # Note: We're ignoring day of week (parts[4]) for simplicity
+        days_of_week = parse_cron_part(parts[4], 0, 6)  # 0=Sunday, 1=Monday, ..., 6=Saturday
+        
+        # Get the day of week for this date (0=Monday, 1=Tuesday, ..., 6=Sunday in Python)
+        date_obj = datetime.date(year, month, day)
+        python_weekday = date_obj.weekday()  # 0=Monday, 6=Sunday
+        
+        # Convert Python weekday to cron weekday (0=Sunday, 1=Monday, ..., 6=Saturday)
+        cron_weekday = (python_weekday + 1) % 7  # Convert: Mon(0)->1, Tue(1)->2, ..., Sun(6)->0
         
         # Check if this date matches the cron criteria
-        if month in months and day in days_of_month:
+        # Both day of month AND day of week must match (if specified)
+        day_of_month_matches = (parts[2] == '*') or (day in days_of_month)
+        day_of_week_matches = (parts[4] == '*') or (cron_weekday in days_of_week)
+        month_matches = month in months
+        
+        # In cron, if both day of month and day of week are specified (not '*'), 
+        # the job runs if EITHER matches (OR logic), not both (AND logic)
+        if parts[2] != '*' and parts[4] != '*':
+            # Both specified - use OR logic
+            day_matches = day_of_month_matches or day_of_week_matches
+        else:
+            # At least one is '*' - use AND logic
+            day_matches = day_of_month_matches and day_of_week_matches
+        
+        if month_matches and day_matches:
             job_execution_times = [(hour, minute) for hour in hours for minute in minutes]
             all_execution_times.extend(job_execution_times)
     
@@ -840,6 +863,26 @@ def describe_single_cron_job(cron_string):
         else:
             day_desc = f"on the {day_part} of the month"
     
+    # Day of week
+    weekday_desc = ""
+    if weekday_part != '*':
+        weekday_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        if ',' in weekday_part:
+            days = [weekday_names[int(d)] for d in weekday_part.split(',')]
+            weekday_desc = f"on {', '.join(days[:-1])}, and {days[-1]}"
+        elif '-' in weekday_part:
+            start, end = map(int, weekday_part.split('-'))
+            if start == 1 and end == 5:
+                weekday_desc = "on weekdays (Monday through Friday)"
+            elif start == 0 and end == 6:
+                weekday_desc = "every day"
+            else:
+                start_name = weekday_names[start]
+                end_name = weekday_names[end]
+                weekday_desc = f"on {start_name} through {end_name}"
+        else:
+            weekday_desc = f"on {weekday_names[int(weekday_part)]}"
+    
     # Month
     month_desc = ""
     if month_part != '*':
@@ -867,6 +910,8 @@ def describe_single_cron_job(cron_string):
     
     if day_desc:
         description_parts.append(day_desc)
+    if weekday_desc:
+        description_parts.append(weekday_desc)
     if month_desc:
         description_parts.append(month_desc)
     
@@ -883,7 +928,7 @@ def main():
     # "27 14 1,15 * *"           # 2:27 PM on 1st and 15th of every month
     # "0 0 * * 0"                # Midnight every Sunday
     
-    cron_string = "3-10 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"  # A complicated example: "3-10 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"
+    cron_string = "*/15 9-18 *  * 1-5"  # A complicated example: "3-10 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"
     
     print("=== Interactive Cron Schedule Visualizer ===")
     print("Monthly calendar view with clickable daily details")
