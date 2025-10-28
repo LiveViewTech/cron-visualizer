@@ -641,8 +641,6 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
                         extent = [cell_x, cell_x + cell_width,
                                  cell_y, cell_y + cell_height]
 
-                        # Construct date_obj for this day
-                        date_obj = datetime(year, month, day_num)
                         # Display the thumbnail as a single image
                         from matplotlib.colors import ListedColormap
 
