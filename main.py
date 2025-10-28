@@ -645,9 +645,11 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
                         date_obj = datetime(year, month, day_num)
                         # Display the thumbnail as a single image
                         from matplotlib.colors import ListedColormap
+
                         cmap = ListedColormap([THUMBNAIL_BACKGROUND_HEX, EXECUTION_COLOR_HEX])  # Lighter background, execution color for executions
                         ax.imshow(thumb_array, extent=extent, aspect='auto',
-                                 cmap=cmap, alpha=0.9, origin='lower', interpolation='bilinear')
+                                 cmap=cmap, alpha=1.0, origin='lower', interpolation='nearest',
+                                 vmin=0, vmax=1)
 
                         # Add day number below the thumbnail
                         ax.text(j + 0.5, len(cal_matrix) - i - 0.15, day_str, 
