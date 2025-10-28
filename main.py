@@ -636,17 +636,19 @@ def generate_monthly_calendar(cron_string, year=None, month=None):
                         cell_height = 0.6
                         cell_x = j + cell_padding
                         cell_y = len(cal_matrix) - i - 0.85
-                        
+
                         # Create extent for imshow (left, right, bottom, top)
-                        extent = [cell_x, cell_x + cell_width, 
+                        extent = [cell_x, cell_x + cell_width,
                                  cell_y, cell_y + cell_height]
-                        
+
                         # Display the thumbnail as a single image
                         from matplotlib.colors import ListedColormap
+
                         cmap = ListedColormap([THUMBNAIL_BACKGROUND_HEX, EXECUTION_COLOR_HEX])  # Lighter background, execution color for executions
-                        ax.imshow(thumb_array, extent=extent, aspect='auto', 
-                                 cmap=cmap, alpha=0.9, origin='lower', interpolation='bilinear')
-                        
+                        ax.imshow(thumb_array, extent=extent, aspect='auto',
+                                 cmap=cmap, alpha=1.0, origin='lower', interpolation='nearest',
+                                 vmin=0, vmax=1)
+
                         # Add day number below the thumbnail
                         ax.text(j + 0.5, len(cal_matrix) - i - 0.15, day_str, 
                                color=CALENDAR_TEXT_WHITE, fontsize=9, ha="center", va="center", 
@@ -905,8 +907,8 @@ def main():
     # "27 14 1,15 * *"           # 2:27 PM on 1st and 15th of every month
     # "0 0 * * 0"                # Midnight every Sunday
     
-    cron_string = "*/15 9-18 *  * 1-5"  # A complicated example: "3-10 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"
-    
+    cron_string = "* 0-5,18-23 * * 1-5 | * * * * 0,6"  # A complicated example: "3-10 0-4,18-23 * * * | */15 10-22 * * * | 27 14 1-3,15 * *"
+
     print("=== Interactive Cron Schedule Visualizer ===")
     print("Monthly calendar view with clickable daily details")
     print()
@@ -916,3 +918,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
