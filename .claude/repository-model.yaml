@@ -1,0 +1,184 @@
+version: 1
+facts:
+  languages:
+    - id: lang-python
+      value: Python
+      evidence:
+        - main.py
+        - requirements.txt
+        - README.md
+  frameworks:
+    - id: fw-matplotlib
+      value: matplotlib
+      evidence:
+        - requirements.txt
+        - main.py
+    - id: fw-pillow
+      value: pillow
+      evidence:
+        - requirements.txt
+        - main.py
+    - id: fw-pandas
+      value: pandas
+      evidence:
+        - requirements.txt
+        - main.py
+    - id: fw-seaborn
+      value: seaborn
+      evidence:
+        - requirements.txt
+        - main.py
+  commands:
+    - id: cmd-install
+      name: install
+      value: pip install -r requirements.txt
+      evidence:
+        - README.md
+        - requirements.txt
+    - id: cmd-run
+      name: run
+      value: python main.py
+      evidence:
+        - README.md
+        - main.py
+  entry_points:
+    - id: entry-main
+      value: main.py
+      evidence:
+        - main.py
+        - README.md
+  components:
+    - id: comp-cron-visualizer
+      name: cron-visualizer
+      path: .
+      evidence:
+        - main.py
+        - README.md
+        - requirements.txt
+  dependencies:
+    - id: dep-pandas
+      name: pandas
+      type: external
+      evidence:
+        - requirements.txt
+    - id: dep-seaborn
+      name: seaborn
+      type: external
+      evidence:
+        - requirements.txt
+    - id: dep-matplotlib
+      name: matplotlib
+      type: external
+      evidence:
+        - requirements.txt
+    - id: dep-pillow
+      name: pillow
+      type: external
+      evidence:
+        - requirements.txt
+    - id: dep-numpy
+      name: numpy
+      type: external
+      evidence:
+        - requirements.txt
+  external_services: []
+  testing: []
+analysis:
+  purpose:
+    value: Interactive Python tool that visualizes cron job schedules as a clickable monthly calendar with pixel-level daily and week timeline PNG views (1 pixel = 1 minute).
+    confidence: high
+    evidence_refs:
+      - entry-main
+      - comp-cron-visualizer
+      - fw-matplotlib
+      - fw-pillow
+  architecture:
+    value: "main() supplies a pipe-separated cron string to generate_monthly_calendar, which parses jobs, builds a matplotlib interactive calendar with thumbnail timelines, and on click delegates to show_daily_view (1440px PIL timeline) or show_week_view (stacked days). Cron matching and human-readable descriptions live in check_cron_matches_date / describe_cron_schedule."
+    confidence: high
+    evidence_refs:
+      - entry-main
+      - comp-cron-visualizer
+      - fw-matplotlib
+      - fw-pillow
+      - fw-pandas
+  patterns:
+    - id: pat-dark-mode-constants
+      value: Shared RGB/HEX dark-mode color constants at module top drive matplotlib and PIL rendering consistently.
+      confidence: high
+      evidence_refs:
+        - entry-main
+        - fw-matplotlib
+        - fw-pillow
+    - id: pat-multi-job-pipe
+      value: Multiple cron expressions are combined in one string separated by | and expanded into per-job execution times.
+      confidence: high
+      evidence_refs:
+        - entry-main
+        - comp-cron-visualizer
+    - id: pat-1440-timeline
+      value: Daily timelines are fixed 1440-wide arrays where each pixel maps to one minute of the day.
+      confidence: high
+      evidence_refs:
+        - entry-main
+        - dep-numpy
+        - fw-pillow
+    - id: pat-headless-matplotlib
+      value: Matplotlib backend selects TkAgg when tkinter is available, otherwise Agg for headless hosts.
+      confidence: high
+      evidence_refs:
+        - entry-main
+        - fw-matplotlib
+  component_notes:
+    - ref: comp-cron-visualizer
+      purpose: Single-module cron schedule visualizer; all parsing, calendar UI, and PNG timeline rendering live in main.py.
+      confidence: high
+  service_notes: []
+  dangerous_areas:
+    - id: dang-pipe-split-mismatch
+      value: Job splitting is inconsistent between generate_monthly_calendar (split on ' | ') and check_cron_matches_date / describe_cron_schedule (split on '|').
+      reason: Documented examples use spaced pipes, but callers that omit spaces build a different jobs list than matching/description paths; maintainers changing only one splitter can desync calendar job objects from match logic.
+      confidence: medium
+      evidence_refs:
+        - entry-main
+    - id: dang-month-year-boundaries
+      value: Crossing month or year boundaries in week/calendar views is untested.
+      reason: README troubleshooting states spanning month or year boundaries is untested and may not work as expected.
+      confidence: high
+      evidence_refs:
+        - entry-main
+        - comp-cron-visualizer
+    - id: dang-no-automated-tests
+      value: No automated test suite or CI workflows exist for cron parsing or rendering.
+      reason: Changes to parse_cron_part / check_cron_matches_date can silently break schedule correctness with no regression signal.
+      confidence: high
+      evidence_refs:
+        - entry-main
+        - comp-cron-visualizer
+  questions:
+    - id: q-readme-cd-path
+      question: README Usage says `cd cronVisualizer` before `python main.py`, but the GitHub repo directory is cron-visualizer and the workspace has no cronVisualizer folder — which path should agents use?
+      area: documentation
+      priority: medium
+      evidence_refs:
+        - cmd-run
+        - entry-main
+    - id: q-seaborn-unused
+      question: seaborn is listed in requirements.txt and imported in main.py but never referenced after import — should it be removed or is usage planned?
+      area: dependencies
+      priority: medium
+      evidence_refs:
+        - dep-seaborn
+        - fw-seaborn
+        - entry-main
+    - id: q-committed-sample-pngs
+      question: Sample outputs cron_calendar_2.png and daily_timeline_2025-06-03.png are committed while .gitignore comments suggest generated images are optional — should generated PNGs stay in VCS?
+      area: repository-hygiene
+      priority: low
+      evidence_refs:
+        - comp-cron-visualizer
+    - id: q-stale-module-docstring
+      question: main.py module docstring still says "Hello World - Main Python File" / "simple hello world program" despite being a full visualizer — intentional leftover or should docs be updated?
+      area: documentation
+      priority: low
+      evidence_refs:
+        - entry-main
